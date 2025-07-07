@@ -2,7 +2,6 @@ import os
 from qgis.PyQt.QtWidgets import QAction, QMessageBox
 from qgis.PyQt.QtGui import QIcon
 
-# This import is needed to initialize the resource file
 from . import resources_rc
 
 try:
@@ -25,7 +24,6 @@ class TreeDetectorPlugin:
         self.dialog = None
 
     def initGui(self):
-        # *** FIX: Use the correct Qt Resource System path for the icon ***
         icon_path = ':/plugins/tree_detector_tools/icon.svg'
         self.action = QAction(
             QIcon(icon_path),

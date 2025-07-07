@@ -14,6 +14,7 @@ from qgis.gui import QgsMapLayerComboBox
 from .ui_tree_detector_tools_dialog_base import Ui_TreeDetectorDialogBase
 
 def run_external_script(task, python_path, script_path, input_raster, model_path, confidence, iou):
+
     QgsMessageLog.logMessage(f"Starting external script: {script_path}", "TreeDetector", Qgis.Info)
     
     command = [
@@ -93,9 +94,9 @@ class TreeDetectorDialog(QDialog, Ui_TreeDetectorDialogBase):
         self.auto_detect_python_path()
 
     def auto_detect_python_path(self):
-        plugin_dir = os.path.dirname(__file__)
-        # *** FIX: Read the path from a config file created by the setup script ***
-        config_path = os.path.join(plugin_dir, 'config.txt')
+        # *** FIX: Read from a standard config location in the user's home directory ***
+        config_dir = os.path.join(os.path.expanduser("~"), ".tree_detector_plugin")
+        config_path = os.path.join(config_dir, 'config.txt')
         
         if os.path.exists(config_path):
             with open(config_path, 'r') as f:

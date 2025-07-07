@@ -66,10 +66,9 @@ def main(args):
                         })
                 
                 processed_tiles += 1
-                # *** FIX: Print progress to stdout ***
-                progress = int((processed_tiles / total_tiles) * 80) # Scale to 80% to leave room for NMS
+                progress = int((processed_tiles / total_tiles) * 80)
                 print(f"PROGRESS:{progress}")
-                sys.stdout.flush() # Ensure the output is sent immediately
+                sys.stdout.flush()
 
     if not all_detections:
         final_detections = []
@@ -91,7 +90,6 @@ def main(args):
             }
         })
 
-    # *** FIX: Print the final JSON result at the end, after all progress messages ***
     print(json.dumps(features))
 
 
