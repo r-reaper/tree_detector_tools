@@ -2,19 +2,18 @@ import os
 import tempfile
 import subprocess
 import json
+import platform
 from qgis.PyQt.QtWidgets import QDialog, QLineEdit, QPushButton, QFileDialog
 from qgis.PyQt.QtCore import QVariant, Qt
 from qgis.core import (QgsProject, QgsVectorLayer, QgsField, QgsFeature, 
                        QgsGeometry, QgsPointXY, QgsRasterLayer, QgsWkbTypes,
                        QgsTask, QgsApplication, QgsMessageLog, Qgis,
                        QgsMapLayerProxyModel)
-from qgis.gui import QgsMapLayerComboBox, QgsFileWidget
+from qgis.gui import QgsMapLayerComboBox
 
 from .ui_tree_detector_tools_dialog_base import Ui_TreeDetectorDialogBase
 
 def run_external_script(task, python_path, script_path, input_raster, model_path, confidence, iou):
-
-    task.setProgress(10)
     QgsMessageLog.logMessage(f"Starting external script: {script_path}", "TreeDetector", Qgis.Info)
     
     command = [
@@ -30,30 +29,45 @@ def run_external_script(task, python_path, script_path, input_raster, model_path
     env.pop('PYTHONHOME', None)
     env.pop('PYTHONPATH', None)
     
+    process = subprocess.Popen(
+        command,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        encoding='utf-8',
+        env=env
+    )
+
+    json_output = ""
+    for line in iter(process.stdout.readline, ''):
+        line = line.strip()
+        if task.isCanceled():
+            process.kill()
+            return {'success': False, 'error': 'Task Canceled'}
+
+        if line.startswith('PROGRESS:'):
+            try:
+                progress = int(line.split(':')[1])
+                task.setProgress(progress)
+            except (ValueError, IndexError):
+                pass
+        else:
+            json_output += line
+
+    process.wait()
+
+    if process.returncode != 0:
+        error_message = f"External script failed with exit code {process.returncode}.\nStderr: {process.stderr.read()}"
+        QgsMessageLog.logMessage(error_message, "TreeDetector", Qgis.Critical)
+        return {'success': False, 'error': error_message}
+
     try:
-        process = subprocess.run(
-            command, 
-            capture_output=True, 
-            text=True, 
-            check=True, 
-            encoding='utf-8',
-            env=env
-        )
-        QgsMessageLog.logMessage(f"External script stdout:\n{process.stdout}", "TreeDetector", Qgis.Info)
-        task.setProgress(90)
-        detections = json.loads(process.stdout)
+        detections = json.loads(json_output)
         return {'success': True, 'detections': detections}
-    except subprocess.CalledProcessError as e:
-        error_message = f"External script failed with exit code {e.returncode}.\nStderr: {e.stderr}"
-        QgsMessageLog.logMessage(error_message, "TreeDetector", Qgis.Critical)
-        return {'success': False, 'error': error_message}
     except json.JSONDecodeError as e:
-        error_message = f"Failed to parse JSON from script output.\nError: {e}\nOutput: {process.stdout}"
+        error_message = f"Failed to parse JSON from script output.\nError: {e}\nOutput: {json_output}"
         QgsMessageLog.logMessage(error_message, "TreeDetector", Qgis.Critical)
         return {'success': False, 'error': error_message}
-    except Exception as e:
-        QgsMessageLog.logMessage(f"An unexpected error occurred: {e}", "TreeDetector", Qgis.Critical)
-        return {'success': False, 'error': str(e)}
 
 
 class TreeDetectorDialog(QDialog, Ui_TreeDetectorDialogBase):
@@ -65,7 +79,6 @@ class TreeDetectorDialog(QDialog, Ui_TreeDetectorDialogBase):
         self.mMapLayerComboBox.setFilters(QgsMapLayerProxyModel.RasterLayer)
         self.mFileWidget_model.setFilter("YOLO Model (*.pt)")
         
-        # *** FIX: Create a custom file selector to handle symlinks on macOS ***
         self.python_path_edit = QLineEdit()
         self.python_path_button = QPushButton("...")
         self.python_path_button.clicked.connect(self.select_python_path)
@@ -77,14 +90,30 @@ class TreeDetectorDialog(QDialog, Ui_TreeDetectorDialogBase):
         self.button_box.rejected.connect(self.reject)
         
         self.task = None
+        self.auto_detect_python_path()
+
+    def auto_detect_python_path(self):
+        plugin_dir = os.path.dirname(__file__)
+        # *** FIX: Read the path from a config file created by the setup script ***
+        config_path = os.path.join(plugin_dir, 'config.txt')
+        
+        if os.path.exists(config_path):
+            with open(config_path, 'r') as f:
+                python_exe = f.read().strip()
+            
+            if os.path.exists(python_exe):
+                self.python_path_edit.setText(python_exe)
+                self.iface.messageBar().pushMessage("Info", "Processing Python environment detected automatically.", level=Qgis.Info, duration=5)
+            else:
+                self.iface.messageBar().pushMessage("Warning", "Config file found, but Python path is invalid. Please re-run the setup script.", level=Qgis.Warning, duration=10)
+        else:
+            self.iface.messageBar().pushMessage("Warning", "Could not find config file. Please run the setup script.", level=Qgis.Warning, duration=10)
 
     def select_python_path(self):
-        # Get the last used directory if available
         start_dir = os.path.dirname(self.python_path_edit.text()) if self.python_path_edit.text() else os.path.expanduser("~")
-
         dialog = QFileDialog(self, "Select Python Executable", start_dir)
         dialog.setFileMode(QFileDialog.ExistingFile)
-        dialog.setOption(QFileDialog.DontResolveSymlinks) # This is the key option
+        dialog.setOption(QFileDialog.DontResolveSymlinks)
         
         if dialog.exec_():
             selected_file = dialog.selectedFiles()[0]
@@ -93,7 +122,7 @@ class TreeDetectorDialog(QDialog, Ui_TreeDetectorDialogBase):
     def start_external_process(self):
         raster_layer = self.mMapLayerComboBox.currentLayer()
         model_path = self.mFileWidget_model.filePath()
-        python_path = self.python_path_edit.text() # Read from the custom line edit
+        python_path = self.python_path_edit.text()
         confidence = self.mDoubleSpinBox_confidence.value()
         iou = self.mDoubleSpinBox_iou.value()
 
@@ -121,9 +150,11 @@ class TreeDetectorDialog(QDialog, Ui_TreeDetectorDialogBase):
             confidence=confidence,
             iou=iou
         )
+        self.task.progressChanged.connect(self.progressBar.setValue)
         QgsApplication.taskManager().addTask(self.task)
 
     def processing_finished(self, exception, result=None):
+        self.progressBar.setValue(100)
         if exception:
             self.iface.messageBar().pushMessage("ผิดพลาด", f"Task failed: {exception}", level=Qgis.Critical)
             self.label_status.setText("Status: Error")
@@ -136,8 +167,6 @@ class TreeDetectorDialog(QDialog, Ui_TreeDetectorDialogBase):
             return
         
         self.label_status.setText("Status: กำลังสร้าง Layer ผลลัพธ์...")
-        self.progressBar.setValue(100)
-        
         detections = result.get('detections', [])
         self.display_results(detections)
 

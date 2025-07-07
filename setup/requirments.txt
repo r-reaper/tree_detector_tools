@@ -1,0 +1,8 @@
+numpy
+rasterio
+opencv-python-headless
+ultralytics
+torch
+torchvision
+shapely
+gdal

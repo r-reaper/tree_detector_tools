@@ -1,32 +1,35 @@
-Plugin Builder Results
+# Tree Detector QGIS Plugin (Distributable Version)
 
-Your plugin TreeDetectorPlugin was created in:
-    /Users/gtar/Documents/plugin/tree_detector_tools
+นี่คือโปรเจกต์ที่ออกแบบมาเพื่อให้ผู้ใช้งานทั่วไปสามารถติดตั้งและใช้งานได้อย่างง่ายดาย
+โดยมีสคริปต์สำหรับตั้งค่าสภาพแวดล้อมการประมวลผล (Processing Environment) ให้โดยอัตโนมัติ
 
-Your QGIS plugin directory is located at:
-    /Users/gtar/Library/Application Support/QGIS/QGIS3/profiles/default/python/plugins
+## ขั้นตอนการติดตั้งสำหรับผู้ใช้งาน (User Installation)
 
-What's Next:
+### สำหรับผู้ใช้ macOS / Linux:
+1.  **แตกไฟล์:** แตกไฟล์ปลั๊กอิน .zip ที่ดาวน์โหลดมา
+2.  **ให้สิทธิ์การรันสคริปต์:** เปิด Terminal, `cd` เข้าไปยังโฟลเดอร์ `setup` แล้วรันคำสั่ง:
+    ```bash
+    chmod +x setup.sh
+    ```
+3.  **รันสคริปต์ติดตั้ง:** ดับเบิ้ลคลิกไฟล์ `setup.sh` หรือรันใน Terminal:
+    ```bash
+    ./setup.sh
+    ```
+    สคริปต์จะทำการสร้าง Environment, ติดตั้งไลบรารี, และบันทึกที่อยู่ของ Python ให้ปลั๊กอินโดยอัตโนมัติ
+4.  **ติดตั้งปลั๊กอินใน QGIS:**
+    - คัดลอกโฟลเดอร์ `tree_detector_tools` ไปยังโฟลเดอร์ปลั๊กอินของ QGIS
+    - รีสตาร์ท QGIS และเปิดใช้งานปลั๊กอินใน Plugin Manager
 
-  * Copy the entire directory containing your new plugin to the QGIS plugin
-    directory
+### สำหรับผู้ใช้ Windows:
+1.  **แตกไฟล์:** แตกไฟล์ปลั๊กอิน .zip ที่ดาวน์โหลดมา
+2.  **รันสคริปต์ติดตั้ง:** ดับเบิ้ลคลิกไฟล์ `setup.bat` ที่อยู่ในโฟลเดอร์ `setup`
+    - หน้าต่าง Command Prompt จะเปิดขึ้นมาและเริ่มทำการติดตั้ง
+3.  **ติดตั้งปลั๊กอินใน QGIS:**
+    - คัดลอกโฟลเดอร์ `tree_detector_tools` ไปยังโฟลเดอร์ปลั๊กอินของ QGIS
+    - รีสตาร์ท QGIS และเปิดใช้งานปลั๊กอิน
 
-  * Compile the resources file using pyrcc5
-
-  * Run the tests (``make test``)
-
-  * Test the plugin by enabling it in the QGIS plugin manager
-
-  * Customize it by editing the implementation file: ``tree_detector_tools.py``
-
-  * Create your own custom icon, replacing the default icon.png
-
-  * Modify your user interface by opening TreeDetectorPlugin_dialog_base.ui in Qt Designer
-
-  * You can use the Makefile to compile your Ui and resource files when
-    you make changes. This requires GNU make (gmake)
-
-For more information, see the PyQGIS Developer Cookbook at:
-http://www.qgis.org/pyqgis-cookbook/index.html
-
-(C) 2011-2018 GeoApt LLC - geoapt.com
+## การใช้งาน
+1.  เปิดปลั๊กอินใน QGIS
+2.  ปลั๊กอินจะค้นหาและกรอก "Processing Python Path" ให้โดยอัตโนมัติ
+3.  เลือก Input Raster Layer และ YOLO Model ของคุณ
+4.  กด "Start Tree Detection" เพื่อเริ่มการประมวลผล

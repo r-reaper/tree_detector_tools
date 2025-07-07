@@ -38,6 +38,11 @@ def main(args):
         height, width = src.height, src.width
         transform = src.transform
 
+        num_tiles_y = len(range(0, height, tile_size - overlap))
+        num_tiles_x = len(range(0, width, tile_size - overlap))
+        total_tiles = num_tiles_y * num_tiles_x if num_tiles_y > 0 else 1
+        processed_tiles = 0
+
         for y in range(0, height, tile_size - overlap):
             for x in range(0, width, tile_size - overlap):
                 window = rasterio.windows.Window(x, y, tile_size, tile_size)
@@ -59,7 +64,13 @@ def main(args):
                             'confidence': float(det_box.conf[0]),
                             'class': model.names[int(det_box.cls[0])]
                         })
-    
+                
+                processed_tiles += 1
+                # *** FIX: Print progress to stdout ***
+                progress = int((processed_tiles / total_tiles) * 80) # Scale to 80% to leave room for NMS
+                print(f"PROGRESS:{progress}")
+                sys.stdout.flush() # Ensure the output is sent immediately
+
     if not all_detections:
         final_detections = []
     else:
@@ -68,7 +79,6 @@ def main(args):
         keep_indices = ops.nms(boxes, scores, args.iou)
         final_detections = [all_detections[i] for i in keep_indices]
     
-    # *** FIX: Create a list of GeoJSON-like features and print it ***
     features = []
     for det in final_detections:
         center_point = det['geometry'].centroid
@@ -81,7 +91,7 @@ def main(args):
             }
         })
 
-    # Print the final result as a JSON string to stdout
+    # *** FIX: Print the final JSON result at the end, after all progress messages ***
     print(json.dumps(features))
 
 
