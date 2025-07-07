@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/plugins/tree_detector_tools" >
+        <file alias="icon.svg">icons/icon.svg</file>
+    </qresource>
+</RCC>
