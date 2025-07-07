@@ -2,12 +2,12 @@ import os
 import tempfile
 import subprocess
 import json
-from qgis.PyQt.QtWidgets import QDialog
+from qgis.PyQt.QtWidgets import QDialog, QLineEdit, QPushButton, QFileDialog
 from qgis.PyQt.QtCore import QVariant, Qt
 from qgis.core import (QgsProject, QgsVectorLayer, QgsField, QgsFeature, 
                        QgsGeometry, QgsPointXY, QgsRasterLayer, QgsWkbTypes,
                        QgsTask, QgsApplication, QgsMessageLog, Qgis,
-                       QgsMapLayerProxyModel, QgsCoordinateReferenceSystem)
+                       QgsMapLayerProxyModel)
 from qgis.gui import QgsMapLayerComboBox, QgsFileWidget
 
 from .ui_tree_detector_tools_dialog_base import Ui_TreeDetectorDialogBase
@@ -41,7 +41,6 @@ def run_external_script(task, python_path, script_path, input_raster, model_path
         )
         QgsMessageLog.logMessage(f"External script stdout:\n{process.stdout}", "TreeDetector", Qgis.Info)
         task.setProgress(90)
-        # *** FIX: Parse the JSON from stdout and return it ***
         detections = json.loads(process.stdout)
         return {'success': True, 'detections': detections}
     except subprocess.CalledProcessError as e:
@@ -65,25 +64,36 @@ class TreeDetectorDialog(QDialog, Ui_TreeDetectorDialogBase):
 
         self.mMapLayerComboBox.setFilters(QgsMapLayerProxyModel.RasterLayer)
         self.mFileWidget_model.setFilter("YOLO Model (*.pt)")
-        self.mFileWidget_python.setStorageMode(QgsFileWidget.GetFile)
-        self.mFileWidget_python.setFilter("All files (*)")
-
-        self.mFileWidget_python.fileChanged.connect(self.update_python_path_root)
+        
+        # *** FIX: Create a custom file selector to handle symlinks on macOS ***
+        self.python_path_edit = QLineEdit()
+        self.python_path_button = QPushButton("...")
+        self.python_path_button.clicked.connect(self.select_python_path)
+        self.python_path_layout.setContentsMargins(0,0,0,0)
+        self.python_path_layout.addWidget(self.python_path_edit)
+        self.python_path_layout.addWidget(self.python_path_button)
 
         self.btn_start_detection.clicked.connect(self.start_external_process)
         self.button_box.rejected.connect(self.reject)
         
         self.task = None
 
-    def update_python_path_root(self, path):
-        if os.path.exists(path):
-            dir_path = os.path.dirname(path)
-            self.mFileWidget_python.setDefaultRoot(dir_path)
+    def select_python_path(self):
+        # Get the last used directory if available
+        start_dir = os.path.dirname(self.python_path_edit.text()) if self.python_path_edit.text() else os.path.expanduser("~")
+
+        dialog = QFileDialog(self, "Select Python Executable", start_dir)
+        dialog.setFileMode(QFileDialog.ExistingFile)
+        dialog.setOption(QFileDialog.DontResolveSymlinks) # This is the key option
+        
+        if dialog.exec_():
+            selected_file = dialog.selectedFiles()[0]
+            self.python_path_edit.setText(selected_file)
 
     def start_external_process(self):
         raster_layer = self.mMapLayerComboBox.currentLayer()
         model_path = self.mFileWidget_model.filePath()
-        python_path = self.mFileWidget_python.filePath()
+        python_path = self.python_path_edit.text() # Read from the custom line edit
         confidence = self.mDoubleSpinBox_confidence.value()
         iou = self.mDoubleSpinBox_iou.value()
 
@@ -128,7 +138,6 @@ class TreeDetectorDialog(QDialog, Ui_TreeDetectorDialogBase):
         self.label_status.setText("Status: กำลังสร้าง Layer ผลลัพธ์...")
         self.progressBar.setValue(100)
         
-        # *** FIX: Get detection data directly from the result ***
         detections = result.get('detections', [])
         self.display_results(detections)
 
@@ -138,7 +147,6 @@ class TreeDetectorDialog(QDialog, Ui_TreeDetectorDialogBase):
             self.label_status.setText("Status: Finished (No Detections)")
             return
 
-        # Use the CRS of the input raster layer for the new point layer
         source_crs = self.mMapLayerComboBox.currentLayer().crs()
         vl = QgsVectorLayer(f"Point?crs={source_crs.authid()}", "Detections", "memory")
         provider = vl.dataProvider()
@@ -150,7 +158,6 @@ class TreeDetectorDialog(QDialog, Ui_TreeDetectorDialogBase):
 
         for det in detections:
             feature = QgsFeature()
-            # The external script now returns a GeoJSON-like point feature
             coords = det['geometry']['coordinates']
             point = QgsPointXY(coords[0], coords[1])
             geom = QgsGeometry.fromPointXY(point)
