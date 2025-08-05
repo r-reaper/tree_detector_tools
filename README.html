@@ -1,42 +1,35 @@
-<html>
-<body>
-<h3>Plugin Builder Results</h3>
+# Tree Detector QGIS Plugin (Distributable Version)
 
-Congratulations! You just built a plugin for QGIS!<br/><br />
+นี่คือโปรเจกต์ที่ออกแบบมาเพื่อให้ผู้ใช้งานทั่วไปสามารถติดตั้งและใช้งานได้อย่างง่ายดาย
+โดยมีสคริปต์สำหรับตั้งค่าสภาพแวดล้อมการประมวลผล (Processing Environment) ให้โดยอัตโนมัติ
 
-<div id='help' style='font-size:.9em;'>
-Your plugin <b>TreeDetectorPlugin</b> was created in:<br>
-&nbsp;&nbsp;<b>/Users/gtar/Documents/plugin/tree_detector_tools</b>
-<p>
-Your QGIS plugin directory is located at:<br>
-&nbsp;&nbsp;<b>/Users/gtar/Library/Application Support/QGIS/QGIS3/profiles/default/python/plugins</b>
-<p>
-<h3>What's Next</h3>
-<ol>
-    <li>If resources.py is not present in your plugin directory, compile the resources file using pyrcc5 (simply use <b>pb_tool</b> or <b>make</b> if you have automake)
-    <li>Optionally, test the generated sources using <b>make test</b> (or run tests from your IDE)
-    <li>Copy the entire directory containing your new plugin to the QGIS plugin directory (see Notes below)
-    <li>Test the plugin by enabling it in the QGIS plugin manager
-    <li>Customize it by editing the implementation file <b>tree_detector_tools.py</b>
-    <li>Create your own custom icon, replacing the default <b>icon.png</b>
-    <li>Modify your user interface by opening <b>tree_detector_tools_dialog_base.ui</b> in Qt Designer
-</ol>
-Notes:
-<ul>
-    <li>You can use <b>pb_tool</b> to compile, deploy, and manage your plugin. Tweak the <i>pb_tool.cfg</i> file included with your plugin as you add files. Install <b>pb_tool</b> using 
-        <i>pip</i> or <i>easy_install</i>. See <b>http://loc8.cc/pb_tool</b> for more information.
-    <li>You can also use the <b>Makefile</b> to compile and deploy when you
-        make changes. This requires GNU make (gmake). The Makefile is ready to use, however you 
-        will have to edit it to add addional Python source files, dialogs, and translations.
-</ul>
-</div>
-<div style='font-size:.9em;'>
-<p>
-For information on writing PyQGIS code, see <b>http://loc8.cc/pyqgis_resources</b> for a list of resources.
-</p>
-</div>
-<p>
-&copy;2011-2019 GeoApt LLC - geoapt.com 
-</p>
-</body>
-</html>
+## ขั้นตอนการติดตั้งสำหรับผู้ใช้งาน (User Installation)
+
+### สำหรับผู้ใช้ macOS / Linux:
+1.  **แตกไฟล์:** แตกไฟล์ปลั๊กอิน .zip ที่ดาวน์โหลดมา
+2.  **ให้สิทธิ์การรันสคริปต์:** เปิด Terminal, `cd` เข้าไปยังโฟลเดอร์ `setup` แล้วรันคำสั่ง:
+    ```bash
+    chmod +x setup.sh
+    ```
+3.  **รันสคริปต์ติดตั้ง:** ดับเบิ้ลคลิกไฟล์ `setup.sh` หรือรันใน Terminal:
+    ```bash
+    ./setup.sh
+    ```
+    สคริปต์จะทำการสร้าง Environment, ติดตั้งไลบรารี, และบันทึกที่อยู่ของ Python ให้ปลั๊กอินโดยอัตโนมัติ
+4.  **ติดตั้งปลั๊กอินใน QGIS:**
+    - คัดลอกโฟลเดอร์ `tree_detector_tools` ไปยังโฟลเดอร์ปลั๊กอินของ QGIS
+    - รีสตาร์ท QGIS และเปิดใช้งานปลั๊กอินใน Plugin Manager
+
+### สำหรับผู้ใช้ Windows:
+1.  **แตกไฟล์:** แตกไฟล์ปลั๊กอิน .zip ที่ดาวน์โหลดมา
+2.  **รันสคริปต์ติดตั้ง:** ดับเบิ้ลคลิกไฟล์ `setup.bat` ที่อยู่ในโฟลเดอร์ `setup`
+    - หน้าต่าง Command Prompt จะเปิดขึ้นมาและเริ่มทำการติดตั้ง
+3.  **ติดตั้งปลั๊กอินใน QGIS:**
+    - คัดลอกโฟลเดอร์ `tree_detector_tools` ไปยังโฟลเดอร์ปลั๊กอินของ QGIS
+    - รีสตาร์ท QGIS และเปิดใช้งานปลั๊กอิน
+
+## การใช้งาน
+1.  เปิดปลั๊กอินใน QGIS
+2.  ปลั๊กอินจะค้นหาและกรอก "Processing Python Path" ให้โดยอัตโนมัติ
+3.  เลือก Input Raster Layer และ YOLO Model ของคุณ
+4.  กด "Start Tree Detection" เพื่อเริ่มการประมวลผล
